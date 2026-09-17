@@ -282,7 +282,7 @@ function parseAllRows_(html) {
 function cleanText_(s) {
   return s.replace(/<[^>]+>/g, ' ')
           .replace(/&nbsp;/gi, ' ')
-          .replace(/</gi, '<').replace(/>/gi, '>')
+          .replace(/&/gi, '<').replace(/&/gi, '>')
           .replace(/&#(\d+);/g, function (_, d) { return String.fromCharCode(d); })
           .replace(/&/gi, '&')
           .replace(/\s+/g, ' ').trim();
@@ -586,7 +586,7 @@ function backfillListed_() {
         // must contain at least 2 numeric cells (prices/gains) - not nav/sidebar rows
         var numCells = 0;
         for (var d3 = 0; d3 < r.length; d3++) {
-          if(/^[\u20b9$]?\s*[\d,]+(\.\d+)?\s*%?$/.test(String(r[d3].text).trim())) numCells++;
+          if (/^[\u20b9$]?\s*[\d,]+(\.\d+)?\s*%?$/.test(String(r[d3].text).trim())) numCells++;
         }
         if (numCells < 2) return;
 

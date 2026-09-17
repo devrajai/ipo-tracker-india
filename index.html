@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>India IPO Tracker</title>
+<meta name="description" content="Live tracker for Indian Mainboard and SME IPOs - open, upcoming, closed and listed, with GMP, RHP links and allotment status.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
+<style>
+:root{
+  --bg:#0b1220; --bg2:#101a2e; --card:#131f36; --card2:#182742;
+  --line:#233452; --text:#e8eef9; --muted:#8ba0c0;
+  --accent:#2dd4bf; --accent2:#60a5fa; --green:#34d399; --amber:#fbbf24; --red:#f87171;
+  --radius:14px; --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.55;min-height:100vh}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+
+header{background:linear-gradient(160deg,#0e1a30 0%,#0b1220 70%);border-bottom:1px solid var(--line);padding:26px 0 20px}
+.head-row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+h1{font-size:1.65rem;letter-spacing:.3px;display:flex;align-items:center;gap:10px}
+h1 .dot{width:11px;height:11px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);display:inline-block}
+.tagline{color:var(--muted);font-size:.95rem;margin-top:2px}
+.head-actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--card);
+  color:var(--text);padding:9px 16px;border-radius:10px;cursor:pointer;font-size:.9rem;font-weight:600;
+  text-decoration:none;transition:.15s}
+.btn:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px)}
+.btn.primary{background:var(--accent);color:#04211c;border-color:var(--accent)}
+.btn.primary:hover{color:#04211c;filter:brightness(1.1)}
+.btn.sm{padding:5px 10px;font-size:.78rem;border-radius:8px}
+.btn[disabled]{opacity:.45;cursor:not-allowed;transform:none}
+
+.badge{display:inline-flex;align-items:center;gap:7px;font-size:.78rem;font-weight:700;padding:5px 12px;border-radius:999px;border:1px solid}
+.badge.live{color:var(--green);border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.08)}
+.badge.snap{color:var(--amber);border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08)}
+.badge .d{width:8px;height:8px;border-radius:50%;background:currentColor}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:22px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
+.stat .n{font-size:1.9rem;font-weight:800}
+.stat .l{color:var(--muted);font-size:.82rem;text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+.stat.open .n{color:var(--green)} .stat.upcoming .n{color:var(--accent2)}
+.stat.closed .n{color:var(--amber)} .stat.listed .n{color:var(--accent)}
+
+/* controls */
+.controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:8px 0 16px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{padding:8px 16px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--muted);
+  cursor:pointer;font-weight:600;font-size:.9rem}
+.tab.active{background:var(--card);color:var(--accent);border-color:var(--accent)}
+.search{flex:1;min-width:220px;position:relative}
+.search input{width:100%;padding:9px 14px;border-radius:10px;border:1px solid var(--line);
+  background:var(--card);color:var(--text);font-size:.92rem;outline:none}
+.search input:focus{border-color:var(--accent2)}
+
+/* table */
+.table-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:920px}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.9px;color:var(--muted);text-align:left;
+  padding:12px 14px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--bg2)}
+td{padding:13px 14px;border-bottom:1px solid rgba(35,52,82,.5);vertical-align:middle;font-size:.9rem}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(45,212,191,.04)}
+.name{font-weight:700;font-size:.95rem}
+.sector{color:var(--muted);font-size:.76rem;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dates{white-space:nowrap;color:var(--muted);font-size:.84rem}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.78rem;font-weight:700}
+.pill.g{background:rgba(52,211,153,.12);color:var(--green)}
+.pill.r{background:rgba(248,113,113,.12);color:var(--red)}
+.pill.a{background:rgba(251,191,36,.12);color:var(--amber)}
+.pill.b{background:rgba(96,165,250,.12);color:var(--accent2)}
+.num{font-variant-numeric:tabular-nums}
+.gain{font-weight:700}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+.empty{padding:50px 20px;text-align:center;color:var(--muted)}
+.count-note{color:var(--muted);font-size:.8rem;margin:10px 2px}
+
+/* modal */
+.overlay{display:none;position:fixed;inset:0;background:rgba(4,10,20,.75);backdrop-filter:blur(4px);
+  z-index:50;padding:24px;overflow-y:auto}
+.overlay.show{display:flex;align-items:flex-start;justify-content:center}
+.modal{background:var(--card);border:1px solid var(--line);border-radius:16px;max-width:760px;width:100%;
+  margin:auto;padding:26px 28px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.modal h2{font-size:1.25rem;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.modal .sub{color:var(--muted);font-size:.85rem;margin-bottom:16px}
+.x{background:none;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer;line-height:1}
+.x:hover{color:var(--text)}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 18px}
+.kv div{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.kv .k{color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.6px}
+.kv .v{font-size:1.05rem;font-weight:700}
+.note{background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.25);border-radius:10px;
+  padding:12px 14px;font-size:.84rem;color:#f3dfa8;margin-top:14px}
+.gitem{border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px;background:var(--card2)}
+.gitem h3{color:var(--accent);font-size:1rem;margin-bottom:6px}
+.gitem .f{font-family:ui-monospace,'Cascadia Code',Menlo,monospace;font-size:.82rem;color:var(--accent2);
+  background:var(--bg2);padding:6px 10px;border-radius:7px;display:inline-block;margin-bottom:8px}
+.gitem p{font-size:.9rem;color:#c6d4ea}
+.tip h3{color:var(--accent);margin:16px 0 6px;font-size:1rem}
+.tip p, .tip li{font-size:.92rem;color:#c6d4ea}
+.tip ul{margin:6px 0 6px 20px}
+
+footer{border-top:1px solid var(--line);margin-top:40px;padding:24px 0 34px;color:var(--muted);font-size:.82rem}
+footer a{color:var(--accent2);text-decoration:none}
+@media(max-width:640px){.kv{grid-template-columns:1fr 1fr}.modal{padding:20px 16px}h1{font-size:1.3rem}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="head-row">
+      <div>
+        <h1><span class="dot"></span> India IPO Tracker</h1>
+        <div class="tagline">Mainboard & SME IPOs — open, upcoming, closed & listed, with GMP, RHP links & allotment status</div>
+      </div>
+      <div class="head-actions">
+        <span id="feedBadge" class="badge snap"><span class="d"></span><span id="feedBadgeText">Loading…</span></span>
+        <button class="btn" onclick="openModal('glossaryModal')">📖 Glossary</button>
+        <button class="btn primary" onclick="openModal('tipModal')">💡 Tip: How to pick</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="stats">
+    <div class="stat open"><div class="n" id="stOpen">–</div><div class="l">Open IPOs</div></div>
+    <div class="stat upcoming"><div class="n" id="stUpcoming">–</div><div class="l">Upcoming IPOs</div></div>
+    <div class="stat closed"><div class="n" id="stClosed">–</div><div class="l">Closed (awaiting listing)</div></div>
+    <div class="stat listed"><div class="n" id="stListed">–</div><div class="l">Listed (all-time)</div></div>
+  </section>
+
+  <section class="controls">
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-tab="open">Open</button>
+      <button class="tab" data-tab="upcoming">Upcoming</button>
+      <button class="tab" data-tab="closed">Closed</button>
+      <button class="tab" data-tab="listed">Listed</button>
+    </div>
+    <div class="search"><input id="q" type="search" placeholder="Search IPO by name or sector…" autocomplete="off"></div>
+  </section>
+
+  <section class="table-card">
+    <table>
+      <thead id="thead"></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div id="empty" class="empty" style="display:none">No IPOs match your search.</div>
+  </section>
+  <div class="count-note" id="countNote"></div>
+</main>
+
+<footer>
+  <div class="wrap">
+    Data: Chittorgarh / NSE India via the <a href="https://github.com/devrajai/ipo-tracker-india" target="_blank" rel="noopener">ipo-tracker-india</a> Google Sheets engine.
+    GMP is unofficial grey-market data and can be manipulated — always verify with the RHP before investing.
+    This tracker is an informational tool, <b>not investment advice</b>.
+    <div id="lastUpdated" style="margin-top:6px"></div>
+  </div>
+</footer>
+
+<!-- ============ GMP modal ============ -->
+<div class="overlay" id="gmpModal" onclick="if(event.target===this)closeModal('gmpModal')">
+  <div class="modal">
+    <h2><span id="gmpName">IPO</span><button class="x" onclick="closeModal('gmpModal')">×</button></h2>
+    <div class="sub">Grey Market Premium detail</div>
+    <div class="kv" id="gmpKv"></div>
+    <p style="font-size:.9rem;color:#c6d4ea" id="gmpExplain"></p>
+    <div class="note"><b>Use with care:</b> GMP is unofficial, unregulated grey-market data. It reflects short-term trader sentiment, not fundamentals, can be manipulated ahead of an IPO, and often collapses when market mood turns. Treat it as one signal among many — never as a reason to invest.</div>
+  </div>
+</div>
+
+<!-- ============ Glossary modal ============ -->
+<div class="overlay" id="glossaryModal" onclick="if(event.target===this)closeModal('glossaryModal')">
+  <div class="modal">
+    <h2>Financial Ratios Glossary <button class="x" onclick="closeModal('glossaryModal')">×</button></h2>
+    <div class="sub">The six numbers to check in every RHP before you apply</div>
+    <div id="glossaryBody"></div>
+  </div>
+</div>
+
+<!-- ============ Tip modal ============ -->
+<div class="overlay" id="tipModal" onclick="if(event.target===this)closeModal('tipModal')">
+  <div class="modal tip">
+    <h2>How to Pick an IPO — The Full Checklist <button class="x" onclick="closeModal('tipModal')">×</button></h2>
+    <div class="sub">A vetted selection strategy, step by step</div>
+    <h3>1. Read the RHP first — always</h3>
+    <p>Open the Red Herring Prospectus (use the RHP/DRHP button on any IPO). Skip to: objects of the issue (where is the money going — repayment of promoter loans is a warning sign), promoter holding before/after, and the risk factors. Ten minutes here beats a hundred opinions.</p>
+    <h3>2. Judge the business, not the buzz</h3>
+    <p>Look for revenue growth over 3 years, stable or expanding margins, and a moat — customer concentration above ~25% from one client is a genuine risk in many SME IPOs. Use the Glossary ratios: ROE above ~15% sustained, ROCE comfortably above the company's borrowing cost, D/E below ~1 (higher is acceptable only in capital-intensive sectors).</p>
+    <h3>3. Value it against listed peers</h3>
+    <p>Find 2–3 listed companies in the same business and compare P/E and P/B at the issue price. If the IPO is priced at a big premium to profitable listed peers without faster growth, the listing pop is already priced in. Loss-making companies: compare EV/Sales instead.</p>
+    <h3>4. Read subscription quality, not just quantity</h3>
+    <ul>
+      <li><b>QIB anchor book filled on day one</b> — institutions did their homework and committed early. Strong signal.</li>
+      <li><b>QIB filling only on the last day</b> — institutions are hedging on retail frenzy, not conviction. Weak signal.</li>
+      <li><b>Massive RII subscription with thin QIB</b> — hype-driven; worst combination for listing-day risk.</li>
+    </ul>
+    <h3>5. Use GMP as a thermometer, not a forecast</h3>
+    <p>GMP tells you the mood in the grey market today. It is useful for sizing listing-day expectations when combined with subscription numbers, but it tells you nothing about the business. High GMP + weak fundamentals = a trading opportunity, not an investment. Low/zero GMP + strong fundamentals can be the better long-term hold.</p>
+    <h3>6. SME IPOs: extra caution</h3>
+    <p>SME listings have thinner volumes, wider spreads and 5% circuit filters. Small float means both violent pops and violent dumps. Cut position sizes, and never chase an SME listing above the circuit for the first hour.</p>
+    <h3>7. Decide your exit before the listing day</h3>
+    <p>Write it down before 9:45 AM: "I sell at open", "I sell if it hits X% gain", or "I hold for the long term because I studied the business". Deciding in the heat of a ticker is how listing gains turn into losses. Avoid anchoring to GMP — the market on listing day does not care what the grey market quoted.</p>
+    <h3>8. Size the position for a total loss</h3>
+    <p>Any single IPO application should be money you can lose entirely without changing your plans. IPO allocation is lottery-weighted for retail; never borrow to apply.</p>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+/* =========================================================================
+   India IPO Tracker - frontend logic
+   Data source order:
+     1. LIVE: Apps Script JSON feed (FEED_URL in config.js, or ?feed= param)
+     2. FALLBACK: CSV snapshot in ./data/*.csv (same repo, always available)
+   ========================================================================= */
+var DATA = { open: [], upcoming: [], closed: [], listed: [], updated: null, mode: 'loading' };
+var curTab = 'open';
+
+/* ---------- boot ---------- */
+document.getElementById('tabs').addEventListener('click', function (e) {
+  if (!e.target.dataset.tab) return;
+  curTab = e.target.dataset.tab;
+  document.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('active', t === e.target); });
+  render();
+});
+document.getElementById('q').addEventListener('input', render);
+
+loadData();
+
+async function loadData() {
+  var feed = (window.IPO_CONFIG && window.IPO_CONFIG.FEED_URL) || '';
+  var qp = new URLSearchParams(location.search).get('feed');
+  if (qp) feed = qp;                                   // ?feed=<exec url> override for testing
+  try {
+    if (!feed) throw new Error('no feed configured');
+    var r = await fetch(feed, { redirect: 'follow' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var j = await r.json();
+    if (!j || !j.ok) throw new Error('bad payload');
+    ['open', 'upcoming', 'closed', 'listed'].forEach(function (k) { DATA[k] = j[k] || []; });
+    DATA.updated = j.updated;
+    DATA.mode = 'live';
+  } catch (err) {
+    try {
+      await loadCsvFallback();
+      DATA.mode = 'snap';
+    } catch (e2) {
+      DATA.mode = 'error';
+      document.getElementById('feedBadgeText').textContent = 'Data unavailable';
+      return;
+    }
+  }
+  setBadge();
+  document.getElementById('stOpen').textContent = DATA.open.length;
+  document.getElementById('stUpcoming').textContent = DATA.upcoming.length;
+  document.getElementById('stClosed').textContent = DATA.closed.length;
+  document.getElementById('stListed').textContent = DATA.listed.length;
+  document.getElementById('lastUpdated').textContent = DATA.updated
+    ? 'Data updated: ' + new Date(DATA.updated).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST'
+    : 'Snapshot as of 17/09/2026 (CSV backup)';
+  render();
+}
+
+/* ---------- CSV fallback ---------- */
+async function loadCsvFallback() {
+  var map = { open: 'open', upcoming: 'upcoming', closed: 'closed', listed: 'listed' };
+  var hdrMap = {
+    'IPO Name': 'name', 'Sector': 'sector', 'Open Date': 'openDate', 'Close Date': 'closeDate',
+    'Listing Date': 'listingDate', 'Price Band Low (Rs)': 'priceLow', 'Price Band High (Rs)': 'priceHigh',
+    'Lot Size (Shares)': 'lotSize', 'Lot Value (Rs)': 'lotValue', 'Issue Size (Rs Cr)': 'issueSizeCr',
+    'RII Sub (x)': 'rii', 'QIB Sub (x)': 'qib', 'NII Sub (x)': 'nii', 'Overall Sub (x)': 'overallSub',
+    'GMP (Rs)': 'gmp', 'Est Listing Gain (%)': 'estGain', 'Debt to Equity': 'de', 'ROE (%)': 'roe',
+    'Revenue Growth (%)': 'revGrowth', 'Listing Price (Rs)': 'listingPrice',
+    'Actual Listing Gain (%)': 'actualGain', 'Source': 'source', 'Last Updated': 'lastUpdated',
+    'Detail URL': 'detailUrl', 'Allotment URL': 'allotmentUrl', 'RHP URL': 'rhpUrl', 'DRHP URL': 'drhpUrl'
+  };
+  for (var key in map) {
+    var r = await fetch('data/' + map[key] + '.csv');
+    if (!r.ok) continue;
+    var rows = parseCsv(await r.text());
+    var headers = rows.shift() || [];
+    DATA[key] = rows.filter(function (rw) { return rw[0]; }).map(function (rw) {
+      var o = {};
+      headers.forEach(function (h, i) {
+        var k = hdrMap[h] || h;
+        o[k] = rw[i] !== undefined ? rw[i].trim() : '';
+      });
+      var g = parseFloat(o.gmp), p = parseFloat(o.priceLow);
+      o.gmpPct = (isFinite(g) && isFinite(p) && p > 0) ? Math.round((g / p) * 1000) / 10 : null;
+      return o;
+    });
+  }
+}
+
+/* minimal CSV parser (handles quotes) */
+function parseCsv(text) {
+  var rows = [], row = [], cur = '', q = false, i = 0;
+  while (i < text.length) {
+    var ch = text[i];
+    if (q) {
+      if (ch === '"' && text[i + 1] === '"') { cur += '"'; i += 2; continue; }
+      if (ch === '"') { q = false; i++; continue; }
+      cur += ch; i++; continue;
+    }
+    if (ch === '"') { q = true; i++; continue; }
+    if (ch === ',') { row.push(cur); cur = ''; i++; continue; }
+    if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      row.push(cur); rows.push(row); row = []; cur = ''; i++; continue;
+    }
+    cur += ch; i++;
+  }
+  if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+  return rows;
+}
+
+/* ---------- badge ---------- */
+function setBadge() {
+  var b = document.getElementById('feedBadge'), t = document.getElementById('feedBadgeText');
+  if (DATA.mode === 'live') { b.className = 'badge live'; t.textContent = 'Live feed (Google Sheet)'; }
+  else { b.className = 'badge snap'; t.textContent = 'Snapshot mode (CSV backup)'; }
+}
+
+/* ---------- table ---------- */
+var COLS = {
+  open: [
+    ['IPO', nameCell], ['Open → Close', function (d) { return dt(d.openDate) + ' → ' + dt(d.closeDate); }],
+    ['Price Band (₹)', band], ['Issue (₹ Cr)', function (d) { return d.issueSizeCr || '–'; }],
+    ['Sub (×)', subCell], ['GMP (₹)', gmpCell], ['GMP %', pctCell], ['Actions', actCell]
+  ],
+  upcoming: [
+    ['IPO', nameCell], ['Opens', function (d) { return dt(d.openDate); }], ['Closes', function (d) { return dt(d.closeDate); }],
+    ['Price Band (₹)', band], ['Issue (₹ Cr)', function (d) { return d.issueSizeCr || '–'; }],
+    ['GMP (₹)', gmpCell], ['GMP %', pctCell], ['Actions', actCell]
+  ],
+  closed: [
+    ['IPO', nameCell], ['Closed On', function (d) { return dt(d.closeDate); }],
+    ['Price Band (₹)', band], ['Issue (₹ Cr)', function (d) { return d.issueSizeCr || '–'; }],
+    ['GMP (₹)', gmpCell], ['GMP %', pctCell], ['Actions', actCell]
+  ],
+  listed: [
+    ['IPO', nameCell], ['Listed On', function (d) { return dt(d.listingDate); }],
+    ['Issue Price (₹)', function (d) { return d.priceHigh || d.priceLow || '–'; }],
+    ['Listing Price (₹)', function (d) { return d.listingPrice || '–'; }],
+    ['Listing Gain', gainCell], ['Actions', actCell]
+  ]
+};
+
+function nameCell(d) {
+  return '<div class="name">' + esc(d.name) + '</div>' + (d.sector ? '<div class="sector" title="' + esc(d.sector) + '">' + esc(d.sector) + '</div>' : '');
+}
+function band(d) {
+  if (d.priceLow && d.priceHigh) return d.priceLow === d.priceHigh ? '₹' + d.priceLow : '₹' + d.priceLow + '–' + d.priceHigh;
+  if (d.priceLow) return '₹' + d.priceLow;
+  return '–';
+}
+function subCell(d) {
+  if (!d.overallSub) return '–';
+  var cls = d.overallSub >= 10 ? 'g' : d.overallSub >= 2 ? 'b' : 'a';
+  return '<span class="pill ' + cls + ' num">' + d.overallSub + '×</span>';
+}
+function gmpCell(d) {
+  if (d.gmp === null || d.gmp === '' || d.gmp === undefined) return '–';
+  var cls = d.gmp > 0 ? 'g' : d.gmp < 0 ? 'r' : 'a';
+  return '<span class="pill ' + cls + ' num">₹' + d.gmp + '</span>';
+}
+function pctCell(d) {
+  if (d.gmpPct === null || d.gmpPct === undefined) return '–';
+  var cls = d.gmpPct > 0 ? 'g' : d.gmpPct < 0 ? 'r' : 'a';
+  return '<span class="pill ' + cls + ' num">' + d.gmpPct + '%</span>';
+}
+function gainCell(d) {
+  var g = parseFloat(d.actualGain);
+  if (!isFinite(g)) return '–';
+  var cls = g > 0 ? 'g' : g < 0 ? 'r' : 'a';
+  return '<span class="pill ' + cls + ' gain num">' + (g > 0 ? '+' : '') + g + '%</span>';
+}
+var LAST_ROWS = [];
+function actCell(d, i) {
+  var h = '<button class="btn sm" onclick="gmpDetail(' + i + ')">GMP</button>';
+  var rhp = d.rhpUrl || d.drhpUrl;
+  h += rhp
+    ? '<a class="btn sm" target="_blank" rel="noopener" href="' + esc(rhp) + '">RHP/DRHP</a>'
+    : (d.detailUrl ? '<a class="btn sm" target="_blank" rel="noopener" title="Direct RHP link appears once the live feed resolves it — opens the IPO detail page" href="' + esc(d.detailUrl) + '">RHP/DRHP</a>'
+                    : '<button class="btn sm" disabled>RHP/DRHP</button>');
+  h += d.allotmentUrl
+    ? '<a class="btn sm" target="_blank" rel="noopener" href="' + esc(d.allotmentUrl) + '">Allotment</a>'
+    : (d.detailUrl ? '<a class="btn sm" target="_blank" rel="noopener" title="Allotment status link appears once the registrar publishes it — opens the IPO detail page" href="' + esc(d.detailUrl) + '">Allotment</a>'
+                    : '<button class="btn sm" disabled>Allotment</button>');
+  if (d.detailUrl) h += '<a class="btn sm" target="_blank" rel="noopener" href="' + esc(d.detailUrl) + '">Detail ↗</a>';
+  return '<div class="actions">' + h + '</div>';
+}
+function dt(s) {
+  if (!s) return '–';
+  var t = Date.parse(s);
+  if (!isNaN(t)) return new Date(t).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' });
+  return String(s).split(' ')[0];
+}
+var escMap = { '&': '&amp;amp;', '<': '&amp;lt;', '>': '&amp;gt;', '"': '&amp;quot;' };
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (ch) { return escMap[ch]; }); }
+
+function render() {
+  var q = document.getElementById('q').value.trim().toLowerCase();
+  var rows = DATA[curTab] || [];
+  if (q) rows = rows.filter(function (d) {
+    return (d.name + ' ' + (d.sector || '')).toLowerCase().indexOf(q) >= 0;
+  });
+  LAST_ROWS = rows;
+  var cols = COLS[curTab];
+  document.getElementById('thead').innerHTML = '<tr>' + cols.map(function (c) { return '<th>' + c[0] + '</th>'; }).join('') + '</tr>';
+  document.getElementById('tbody').innerHTML = rows.map(function (d, i) {
+    return '<tr>' + cols.map(function (c) { return '<td>' + c[1](d, i) + '</td>'; }).join('') + '</tr>';
+  }).join('');
+  document.getElementById('empty').style.display = rows.length ? 'none' : 'block';
+  document.getElementById('countNote').textContent =
+    rows.length + ' IPO' + (rows.length === 1 ? '' : 's') + ' · ' + (DATA.mode === 'live' ? 'live sheet data' : 'CSV snapshot 17/09/2026');
+}
+
+/* ---------- GMP detail ---------- */
+function gmpDetail(i) {
+  var d = LAST_ROWS[i];
+  if (!d) return;
+  document.getElementById('gmpName').textContent = d.name;
+  var g = (d.gmp === '' || d.gmp === null || d.gmp === undefined) ? null : parseFloat(d.gmp);
+  var pct = d.gmpPct;
+  document.getElementById('gmpKv').innerHTML =
+    kv('GMP (grey market)', g === null ? '–' : '₹' + g) +
+    kv('GMP %', (pct === null || pct === undefined) ? '–' : pct + '%') +
+    kv('Price band', band(d) || '–') +
+    kv('Lot value', d.lotValue ? '₹' + d.lotValue : '–');
+  document.getElementById('gmpExplain').textContent =
+    g === null ? 'No GMP is currently recorded for this IPO.'
+    : 'Traders in the unofficial grey market are quoting ' + (g >= 0 ? 'a premium of ₹' + g : 'a discount of ₹' + Math.abs(g)) +
+      ' over the issue price' + (pct != null ? ', roughly ' + pct + '% of the issue price' : '') +
+      '. If it listed at this level, one lot' + (d.lotValue ? ' (₹' + d.lotValue + ')' : '') +
+      ' would show ' + (g >= 0 ? 'a paper gain' : 'a paper loss') + ' of about ₹' + Math.abs(g) + (d.lotSize ? ' × ' + d.lotSize + ' shares' : '') + '.';
+  openModal('gmpModal');
+}
+function kv(k, v) { return '<div><div class="k">' + k + '</div><div class="v num">' + v + '</div></div>'; }
+
+/* ---------- glossary ---------- */
+var GLOSSARY = [
+  { t: 'P/E — Price to Earnings', f: 'P/E = Share price ÷ Earnings per share (EPS)',
+    p: 'What you pay for every ₹1 of annual profit. A P/E of 30 means you pay ₹30 for ₹1 of yearly earnings. Always compare against listed peers in the same sector — a P/E of 50 for a fast-growing company can be cheaper than 15 for a shrinking one. Meaningless for loss-making companies (common in IPOs): use EV/Sales or EV/EBITDA there instead.' },
+  { t: 'P/B — Price to Book', f: 'P/B = Share price ÷ Book value per share',
+    p: 'Compares price to the company\'s net worth (assets minus liabilities). Most useful for banks, NBFCs and other financials, where book value is marked to market. Below 1 can signal undervaluation — or a business earning poor returns on its assets; check ROE to tell them apart. Of little use for asset-light tech or services companies.' },
+  { t: 'ROE — Return on Equity', f: 'ROE = Net profit ÷ Shareholders\' equity × 100',
+    p: 'How efficiently the company turns shareholders\' money into profit. Sustained ROE above ~15% is a sign of quality. Warning: ROE can be inflated by high debt — a leveraged company shows great ROE while carrying real risk. Always read ROE together with D/E.' },
+  { t: 'ROCE — Return on Capital Employed', f: 'ROCE = EBIT ÷ (Total debt + Equity) × 100',
+    p: 'Like ROE, but includes borrowed money in the base — so it judges whether the business earns more than capital costs, debt or equity alike. Capital-intensive sectors (steel, cement, infra) should be judged on ROCE, not ROE. ROCE comfortably above the company\'s borrowing rate (~12–15%+ in India) is strong. A big gap between ROE and ROCE means profits depend on leverage.' },
+  { t: 'P/L — Profit & Loss statement', f: 'Revenue → margins → profit, read over 3 years',
+    p: 'The RHP\'s P&L section shows the last three financial years. Read it top to bottom: is revenue growing or flat? Are margins stable, rising, or squeezed? Are profits backed by operating cash flow (check the cash-flow statement — profit without cash is a classic red flag)? One good year after two weak ones is often window-dressing before an IPO.' },
+  { t: 'D/E — Debt to Equity', f: 'D/E = Total debt ÷ Net worth',
+    p: 'How much the company owes for every rupee of shareholders\' money. Below ~1 is comfortable for most sectors; 1–2 is workable in capital-intensive businesses; banks and NBFCs run much higher by design, so judge them on book value instead. Rising D/E with falling ROCE is a serious red flag — the company is borrowing to keep up appearances.' }
+];
+document.getElementById('glossaryBody').innerHTML = GLOSSARY.map(function (g) {
+  return '<div class="gitem"><h3>' + g.t + '</h3><div class="f">' + g.f + '</div><p>' + g.p + '</p></div>';
+}).join('');
+
+/* ---------- modal helpers ---------- */
+function openModal(id) { document.getElementById(id).classList.add('show'); document.body.style.overflow = 'hidden'; }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); document.body.style.overflow = ''; }
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') document.querySelectorAll('.overlay.show').forEach(function (o) { o.classList.remove('show'); });
+});
+</script>
+</body>
+</html>

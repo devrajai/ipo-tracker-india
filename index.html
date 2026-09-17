@@ -402,7 +402,7 @@ function dt(s) {
   if (!isNaN(t)) return new Date(t).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' });
   return String(s).split(' ')[0];
 }
-var escMap = { '&': '&amp;amp;', '<': '&amp;lt;', '>': '&amp;gt;', '"': '&amp;quot;' };
+var escMap = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (ch) { return escMap[ch]; }); }
 
 function render() {

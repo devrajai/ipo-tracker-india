@@ -148,7 +148,7 @@ function collectIpos_() {
 
         var rawName = nameCell.text
             .replace(/(\d{1,2}\s*[-\u2013]\s*\d{1,2}\s+[A-Za-z]{3,9}).*$/, ' ')  // date glued to name
-            .replace(/&/gi, '&')                 // decode entity
+            .replace(/\u0026amp;/gi, '\u0026')                 // decode entity
             .replace(/\s+/g, ' ')                    // normalize whitespace
             .replace(/\s*\(?(IPO|FPO)\)?\s*$/i, '')
             .replace(/[\s\u00a0]+(O|P|CT|LT)\s*$/i, '')  // trailing status letters
@@ -282,9 +282,9 @@ function parseAllRows_(html) {
 function cleanText_(s) {
   return s.replace(/<[^>]+>/g, ' ')
           .replace(/&nbsp;/gi, ' ')
-          .replace(/&/gi, '<').replace(/&/gi, '>')
+          .replace(/\u0026lt;/gi, '<').replace(/\u0026gt;/gi, '>')
           .replace(/&#(\d+);/g, function (_, d) { return String.fromCharCode(d); })
-          .replace(/&/gi, '&')
+          .replace(/\u0026amp;/gi, '\u0026')
           .replace(/\s+/g, ' ').trim();
 }
 
@@ -611,7 +611,7 @@ function backfillListed_() {
 
         var rawName = nameCell.text
             .replace(/(\d{1,2}\s*[-\u2013]\s*\d{1,2}\s+[A-Za-z]{3,9}).*$/, ' ')
-            .replace(/&/gi, '&')
+            .replace(/\u0026amp;/gi, '\u0026')
             .replace(/\s+/g, ' ')
             .replace(/\s*\(?(IPO|FPO)\)?\s*$/i, '')
             .replace(/[\s\u00a0]+(O|P|CT|LT)\s*$/i, '')

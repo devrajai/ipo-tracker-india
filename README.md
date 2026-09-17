@@ -1,42 +1,88 @@
 # India IPO Tracker
 
-A self-updating IPO tracker for Indian Mainboard + SME IPOs, built with **Google Sheets + Google Apps Script**. No server, no API keys, no cost — the script scrapes public IPO data and keeps the spreadsheet current every day on its own.
+A self-updating IPO tracker for Indian Mainboard + SME IPOs, built with **Google Sheets + Google Apps Script**, with a public website served from this repository via **GitHub Pages**. No server, no API keys, no cost — the script scrapes public IPO data and keeps the spreadsheet current every day on its own.
 
-## What it does
+**Website:** https://devrajai.github.io/ipo-tracker-india/
 
-- Fetches current **Mainboard + SME IPO** data from Chittorgarh (free source) with NSE India as backup.
-- Sorts every IPO into the right tab automatically: **Upcoming → Open → Closed → Listed**.
-- When an IPO's subscription closes, it moves to the *Closed* tab; once listed, it archives to *Listed*.
-- For Open IPOs it pulls price band, lot size, issue size, subscription (RII / QIB / NII) and GMP from each IPO's detail page.
-- Appends a daily GMP snapshot to the *GMP Log* tab.
-- A trigger runs `updateAll` every morning (~8–9 AM IST), so the sheet updates itself.
+## How the pieces fit together
+
+```
+Chittorgarh / NSE (public IPO data)
+        │
+        ▼  (Apps Script scraper, daily trigger ~8 AM IST)
+Google Sheet "IPO Tracker - India"  ← single source of truth
+        │
+        ├── apps-script/IPO_Tracker_AppsScript.gs   (scraper + tabs)
+        └── apps-script/IPO_Tracker_API.gs         (JSON feed + self-healing links)
+                    │
+                    ▼  doGet() JSON  (live feed → config.js FEED_URL)
+        Website (GitHub Pages)
+        ├── index.html    — dashboard UI
+        ├── config.js     — feed URL / snapshot mode
+        └── data/*.csv    — snapshot fallback, always available
+```
+
+The Google Sheet stays the live system; this repo versions the script, keeps point-in-time CSV backups of the data, and hosts the public website.
 
 ## Repository structure
 
 ```
+index.html                      # The website (single self-contained page)
+config.js                       # Website config (FEED_URL for live mode)
 apps-script/
-  IPO_Tracker_AppsScript.gs   # The full Apps Script (paste into the sheet)
-data/                          # CSV snapshot of every tab (as of 17/09/2026)
-  open.csv                     # Currently open IPOs
-  upcoming.csv                 # Announced, not yet open
-  closed.csv                   # Subscription closed, awaiting listing
-  listed.csv                   # All-time archive of listed IPOs
-  gmp_log.csv                  # Daily grey-market premium snapshots
-  config.csv                   # Source & automation settings
+  IPO_Tracker_AppsScript.gs     # Main script: scraper + tab automation
+  IPO_Tracker_API.gs            # API: doGet() JSON feed, link self-healing,
+                                #      direct RHP/DRHP + allotment resolver
+data/                           # CSV snapshot of every tab (as of 17/09/2026)
 ```
 
-The Google Sheet stays the live system; this repo versions the script and keeps point-in-time CSV backups of the data.
+## The website
 
-## Setup (one time, ~5 minutes)
+- **Open / Upcoming / Closed / Listed** tabs with search.
+- **GMP button** — grey-market premium in ₹ and % (computed live: GMP ÷ lower price band), with per-lot impact and a use-with-care note.
+- **RHP/DRHP button** — opens the *direct* document link when the live feed has resolved one (issuer/registrar-hosted PDF, bypassing NSE/BSE gateway pages); otherwise falls back to the IPO's detail page.
+- **Allotment button** — the registrar's allotment-status page once published; until then it opens the IPO detail page.
+- **Glossary** — detailed explanations of P/E, P/B, ROE, ROCE, P/L and D/E, with formulas and Indian-market benchmarks.
+- **Tip: How to pick** — a full vetted selection checklist (RHP reading, subscription quality, GMP usage, SME caution, listing-day exit plan).
+
+The site runs in two modes:
+
+| Mode | When | Data freshness |
+|---|---|---|
+| **Live feed** | `FEED_URL` set in `config.js` | As fresh as the sheet (daily trigger + optional link-monitor runs) |
+| **Snapshot** | No feed configured (default) | The committed CSVs in `data/` |
+
+## Website setup (the live feed)
+
+1. In the **IPO Tracker - India** spreadsheet: **Extensions > Apps Script**.
+2. Make sure both files from `apps-script/` are present in the project.
+3. **Deploy > New deployment > Web app** — *Execute as: Me*, *Who has access: Anyone*.
+4. Copy the web app URL (ends in `/exec`) into `FEED_URL` in `config.js` and commit.
+5. That's it — the badge on the site turns green ("Live feed") on next load.
+
+For testing you can also pass the URL as a query parameter: `?feed=<exec url>`.
+
+## Apps Script functions (in IPO_Tracker_API.gs)
+
+| Function | What it does |
+|---|---|
+| `doGet(e)` | Serves the JSON feed. `?tab=open` returns one tab only. GMP % is always computed, never stored. |
+| `resolveIpoLinks()` | Scrapes each Open/Upcoming IPO's detail page for **direct** RHP/DRHP PDFs and the registrar allotment link, writing them into new columns it creates itself. |
+| `checkLinks()` | Self-healing monitor (every 30 min via trigger): checks every stored link; on 404/410 it **re-derives** the link from the detail page instead of guessing. A 404 on an allotment link usually just means the registrar hasn't published yet — treated as pending, not dead. |
+| `installLinkTrigger()` | Run once to install the 30-minute monitor trigger. |
+
+Quota note: `UrlFetchApp` allows ~20,000 calls/day on free accounts. At a 30-minute cadence with typical IPO counts the monitor stays far below this. Don't set the interval under 10 minutes.
+
+## Spreadsheet setup (one time, ~5 minutes)
 
 1. Open the **IPO Tracker - India** spreadsheet (or a new blank sheet).
 2. Click **Extensions > Apps Script**, delete any code shown.
-3. Paste the entire contents of [`apps-script/IPO_Tracker_AppsScript.gs`](apps-script/IPO_Tracker_AppsScript.gs).
+3. Paste the entire contents of [`apps-script/IPO_Tracker_AppsScript.gs`](apps-script/IPO_Tracker_AppsScript.gs), then add a second file with the contents of [`apps-script/IPO_Tracker_API.gs`](apps-script/IPO_Tracker_API.gs).
 4. Click the **Save** icon.
 5. In the toolbar dropdown select the function **`updateAll`** and click **Run**.
 6. Authorize when Google asks: *Review permissions > your account > Advanced > Go to project > Allow*.
-7. For daily automation, run **`installTrigger`** once (or add a trigger manually: function `updateAll`, event source *Time-driven*, *Day timer*, 8am–9am).
-8. Optional: in Apps Script **Project Settings**, set the time zone to *(GMT+05:30) Kolkata* so the trigger fires in the morning.
+7. For daily automation, run **`installTrigger`** once (or add a trigger manually: function `updateAll`, event source *Time-driven*, *Day timer*, 8am–9am), and run **`installLinkTrigger`** once for the link monitor.
+8. Optional: in Apps Script **Project Settings**, set the time zone to *(GMT+05:30) Kolkata* so triggers fire in the morning.
 
 ## How the tabs work
 
@@ -48,6 +94,7 @@ The Google Sheet stays the live system; this repo versions the script and keeps 
 | Closed | Subscription over, awaiting listing | auto-move |
 | Listed | Listed IPOs with issue price, listing price & listing-day gain | auto-archive |
 | GMP Log | One row per open IPO per day: date, name, GMP | `updateAll` |
+| Link Health | Timestamped log of link checks & self-healing events | `checkLinks` |
 | Config | Sources, trigger schedule, disclaimer | manual |
 
 ## Data sources & disclaimer
